@@ -16,29 +16,25 @@ def searchfiles(path):
             print('Abs : ' + os.path.abspath(f))
 
 
-class ShowDirApp(tk.Frame):
+class treeviewHeading(tk.Frame):
     def __init__(self, main):
         super().__init__(main)
-        self.pack()
+        #self.columnconfigure(0, weight=1)
 
-        self.grid()
-        self.columnconfigure(0, weight=1)
-
-        self.search = self.searchfiles(os.getcwd())
         self.csv = self.searchcsv(os.getcwd())
         self.create_treeview_headings()
-        self.create_treeview()
         
-
-    
     def create_treeview_headings(self):
+        
+        self.label = tk.Label(self, text = "CSV File Manager")
+        self.label.grid(row=0, column=0, pady=1)
         self.htree = ttk.Treeview(self, height=15, selectmode="extended")
         
         # set content
         self.htree["columns"] = (1,2)
         self.htree["show"] = "headings"
         self.htree.column(1, width=250)
-        self.htree.column(2, width=200)
+        self.htree.column(2, width=250)
 
         # set header name
         self.htree.heading(1, text='FILE NAME')
@@ -48,37 +44,22 @@ class ShowDirApp(tk.Frame):
         for key, value in sorted(self.csv.items(), key=lambda x: x[1]):
             self.htree.insert("", "end", values=(str(key), str(value)))
                     
-        self.htree.grid(row=0, column=0, columnspan=1, padx=5, pady=5, sticky=tk.N + tk.S + tk.E + tk.W)
-
+        self.htree.grid(row=1, column=0, padx=5, pady=5)
 
         # set scrollbar
         hscrollbar = ttk.Scrollbar(self, orient=tk.HORIZONTAL, command=self.htree.xview)
         vscrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.htree.yview)
         self.htree.configure(xscrollcommand=hscrollbar.set)
         self.htree.configure(yscrollcommand=vscrollbar.set)
-        vscrollbar.grid(row=0, column=1, columnspan=1, padx=5, pady=5, sticky=tk.NS)
-        hscrollbar.grid(row=1, column=0, columnspan=1, padx=5, pady=5, sticky=tk.EW)
+        vscrollbar.grid(row=1, column=1, padx=5, pady=5, sticky=tk.NS)
+        hscrollbar.grid(row=2, column=0, padx=5, pady=5, sticky=tk.EW)
         
         self.create_Button(self.htree)
 
-
-    def create_treeview(self):
-        self.ttree = ttk.Treeview(self, height=15, selectmode="browse")
-        self.ttree['show'] = "tree"
-         
-        self.ttree.grid(row=0, column=2, padx=5, pady=5)
-        for key, value in self.search.items():
-            #print('key: {0}, value : {1}'.format(key, value))
-            parent = self.ttree.insert("", "end", text=os.path.basename(key))
-            for v in value:
-                self.ttree.insert(parent, "end", text=v)
-
-
-
-
     def create_Button(self, tree):
         button = tk.Button(text='select', command=lambda: self.clk_event(tree))
-        button.grid(row=1, column=0, padx=5, pady=5, sticky=tk.EW)
+        button.grid(row=1, column=0, padx=5, pady=5)
+        #button.grid(row=1, column=1, padx=5, pady=5, sticky=tk.EW)
         #close_btn = tk.Button(text = 'close')
         #close_btn.grid(row=1, column=1, padx=5, pady=5, sticky=tk.EW)
 
@@ -93,17 +74,6 @@ class ShowDirApp(tk.Frame):
             print("Error : ", e)
         
     
-    def searchfiles(self, path):    
-        search = {}
-        for f in glob.glob(path + '/**', recursive=True):
-            if os.path.isdir(f):
-                search.setdefault(f, [])
-            else:
-                path, base = os.path.split(f)
-                search.setdefault(path, []).append(base)
-
-        return search
-
     def searchcsv(self, path):
         csvfiles = {}
         if os.path.isdir(path):
@@ -113,12 +83,66 @@ class ShowDirApp(tk.Frame):
         return csvfiles
 
 
+
+class treeviewFrame(tk.Frame):
+    def __init__(self, main):
+        super().__init__(main)
+
+        self.search = self.searchfiles(os.getcwd())
+        self.create_treeview()
+
+
+    def create_treeview(self):
+       
+        self.label = tk.Label(self, text="TreeView")
+        self.label.grid(row=0, column=0,pady=0)
+
+        self.ttree = ttk.Treeview(self, height=15, selectmode="browse")
+        self.ttree['show'] = "tree"
+        # set scrollbar
+        vscrollbar = ttk.Scrollbar(self, orient=tk.VERTICAL, command=self.ttree.yview)
+        self.ttree.configure(yscrollcommand=vscrollbar.set)
+        vscrollbar.grid(row=1, column=1, padx=5, pady=5, sticky=tk.NS)
+         
+        self.ttree.grid(row=1, column=0, padx=5, pady=5)
+
+
+        for key, value in sorted(self.search.items()):
+            if len(value) == 0:
+                continue
+
+            sort_val = sorted(value)
+            if key == '.':
+                for v in sort_val:
+                    self.ttree.insert("", "end", text=v)
+            else:
+                parent = self.ttree.insert("", "end", text=os.path.basename(key))
+                for v in sort_val:
+                    self.ttree.insert(parent, "end", text=v)
+
+
+    def searchfiles(self, path):    
+        search = {}
+        for f in glob.glob(path + '/**', recursive=True):
+            if os.path.isdir(f):
+                search.setdefault(f, [])
+            else:
+                parent_path, base_name = os.path.split(f)
+                if parent_path == path:
+                    parent_path = '.'
+                search.setdefault(parent_path, []).append(base_name)
+
+        return search
+
 def main():
     root = tk.Tk()
-    root.geometry('1000x500')
+    root.geometry('800x500')
     root.title('Show Direcotry Application')
-    app = ShowDirApp(main=root)
-    app.mainloop()
+    frame1 = treeviewHeading(main=root)
+    frame2 = treeviewFrame(main=root)
+    frame1.grid(column=0, row=0)
+    frame2.grid(column=1, row=0)
+    root.mainloop()
         
 
 
@@ -128,5 +152,3 @@ if __name__ == '__main__':
     #PATH = r'/home/atmark/Document/myFTPapp'
     #searchfiles(PATH)
     main()
-
-
